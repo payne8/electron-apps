@@ -11,6 +11,7 @@ const cleanDeep = require('clean-deep')
 const imageSize = require('image-size')
 const makeColorAccessible = require('make-color-accessible')
 const slugg = require('slugg')
+const grandfatheredSlugs = require('../lib/grandfathered-small-icons')
 const slugs = fs.readdirSync(path.join(__dirname, '../apps'))
   .filter(filename => {
     return fs.statSync(path.join(__dirname, `../apps/${filename}`)).isDirectory()
@@ -88,6 +89,15 @@ describe('human-submitted app data', () => {
                 `${slug}: contrast ratio too low for goodColorOnBlack. Try: ${accessibleColor}`)
             }
           })
+
+          it(`allows faintColorOnWhite to be set`, () => {
+            const color = app.faintColorOnWhite
+            if (color) {
+              expect(color).to.match(/rgba\(\d+, \d+, \d+, /,
+                `${slug}'s faintColorOnWhite must be an rgba string`
+              )
+            }
+          })
         })
 
         it('has no empty properties', () => {
@@ -132,18 +142,14 @@ describe('human-submitted app data', () => {
           expect(dimensions.width).to.equal(dimensions.height)
         })
 
-        it('is at least 128px x 128px', function () {
+        const minPixels = (grandfatheredSlugs.indexOf(slug) > -1) ? 128 : 256
+        const maxPixels = 1024
+
+        it(`is between ${minPixels}px x ${minPixels}px and ${maxPixels}px x ${maxPixels}px`, function () {
           if (!fs.existsSync(iconPath)) return this.skip()
-
           const dimensions = imageSize(iconPath)
-          expect(dimensions.width).to.be.above(127)
-        })
-
-        it('is not more than 1024px x 1024px', function () {
-          if (!fs.existsSync(iconPath)) return this.skip()
-
-          const dimensions = imageSize(iconPath)
-          expect(dimensions.width).to.be.below(1025)
+          expect(dimensions.width).to.be.within(minPixels, maxPixels)
+          expect(dimensions.height).to.be.within(minPixels, maxPixels)
         })
       })
     })
